@@ -19,7 +19,7 @@ def load_pose_model():
     mp_pose = mp.solutions.pose
     return mp_pose.Pose(
         static_image_mode=False,
-        model_complexity=0,  # 0 = Lite (เร็วที่สุดสำหรับบนเว็บ)
+        model_complexity=1,  # 0 = Lite (เร็วที่สุดสำหรับบนเว็บ)
         min_detection_confidence=0.5,
         min_tracking_confidence=0.5
     )

@@ -7,3 +7,4 @@ spotipy
 streamlit-webrtc
 av
 tornado==6.2
+numpy

@@ -1,5 +1,5 @@
-opencv-python-headless==4.9.0.80
-mediapipe
+opencv-python-headless==4.8.0.74
+mediapipe==0.10.11
 streamlit
 supabase
 python-dotenv

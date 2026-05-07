@@ -1,6 +1,6 @@
-streamlit
 opencv-python-headless
 mediapipe
+streamlit
 supabase
 python-dotenv
 spotipy

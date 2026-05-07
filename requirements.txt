@@ -1,8 +1,9 @@
-streamlit
 opencv-python-headless
 mediapipe
+streamlit
 supabase
 python-dotenv
 spotipy
 streamlit-webrtc
 av
+tornado==6.2

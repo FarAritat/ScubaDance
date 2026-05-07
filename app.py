@@ -72,7 +72,7 @@ def video_frame_callback(frame):
         # วาดเส้น Skeleton (ลดเหลือแค่จุดสำคัญถ้ายังช้า)
         mp_draw.draw_landmarks(img, results.pose_landmarks, mp.solutions.pose.POSE_CONNECTIONS)
         
-        # คำนวณคะแนน
+        """# คำนวณคะแนน
         new_count, new_side, is_covering = calculate_scuba_logic(
             results.pose_landmarks.landmark, 
             st.session_state.last_side, 
@@ -81,7 +81,7 @@ def video_frame_callback(frame):
         
         # อัปเดต State (WebRTC ทำงานแยก Thread ต้องระวัง)
         st.session_state.count = new_count
-        st.session_state.last_side = new_side
+        st.session_state.last_side = new_side"""
     
     # วาดคะแนนลงบนจอกล้อง
     color = (0, 255, 0) if is_covering else (0, 0, 255)

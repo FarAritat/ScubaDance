@@ -1,10 +1,10 @@
 import streamlit as st
+import cv2
 import mediapipe as mp
 import time
 import math
 import os
 import av
-import numpy as np # ใช้ NumPy แทน cv2 ในการจัดการ Array ภาพ
 from streamlit_webrtc import webrtc_streamer
 from database import add_userdata, login_user, update_high_score, get_high_score
 from spotify_handler import SpotifyHandler
@@ -12,13 +12,11 @@ from spotify_handler import SpotifyHandler
 # --- INITIALIZATION ---
 st.set_page_config(page_title="Scuba Dance Master", layout="wide")
 
+# สร้างตัวแปรสำหรับ Mediapipe ไว้ใน Session State เพื่อให้เรียกใช้ใน Callback ได้
 if 'mp_pose' not in st.session_state:
     st.session_state.mp_pose = mp.solutions.pose
-    # ปิดการวาด Landmark เพราะ Drawing Utils เรียกใช้ cv2 เบื้องหลัง
-    st.session_state.pose = st.session_state.mp_pose.Pose(
-        min_detection_confidence=0.7, 
-        min_tracking_confidence=0.7
-    )
+    st.session_state.pose = st.session_state.mp_pose.Pose(min_detection_confidence=0.7, min_tracking_confidence=0.7)
+    st.session_state.mp_draw = mp.solutions.drawing_utils
 
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 if 'username' not in st.session_state: st.session_state.username = ""
@@ -52,22 +50,23 @@ def calculate_scuba_logic(lm, last_side, count):
 
 # --- WEBRTC CALLBACK ---
 def video_frame_callback(frame):
-    # รับภาพเป็น RGB โดยตรงเพื่อลดการใช้ cvtColor
-    img = frame.to_ndarray(format="rgb24")
+    img = frame.to_ndarray(format="bgr24")
+    img = cv2.flip(img, 1)
+    results = st.session_state.pose.process(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
     
-    # ใช้ NumPy ในการกลับด้านภาพ (Flip horizontal)
-    img = np.flip(img, axis=1)
-    
-    # ประมวลผล Pose
-    results = st.session_state.pose.process(img)
-    
+    is_covering = False
     if results.pose_landmarks:
-        # คำนวณ Logic โดยไม่วาดเส้นลงบนภาพ
-        st.session_state.count, st.session_state.last_side, _ = calculate_scuba_logic(
+        st.session_state.mp_draw.draw_landmarks(img, results.pose_landmarks, st.session_state.mp_pose.POSE_CONNECTIONS)
+        st.session_state.count, st.session_state.last_side, is_covering = calculate_scuba_logic(
             results.pose_landmarks.landmark, st.session_state.last_side, st.session_state.count
         )
     
-    return av.VideoFrame.from_ndarray(img, format="rgb24")
+    # วาด UI ลงบนภาพ
+    color = (0, 255, 0) if is_covering else (0, 0, 255)
+    cv2.putText(img, f"Score: {st.session_state.count}", (20, 50), 1, 2, (255, 255, 0), 2)
+    cv2.putText(img, "DANCING!" if is_covering else "HOLD HAND TO MOUTH", (20, 100), 1, 1.5, color, 2)
+    
+    return av.VideoFrame.from_ndarray(img, format="bgr24")
 
 # --- UI SCREENS ---
 def login_screen():
@@ -87,7 +86,7 @@ def login_screen():
 
 def game_screen():
     st.sidebar.metric("🏆 High Score", f"{get_high_score(st.session_state.username)}")
-    if st.sidebar.button("Logout & Save"):
+    if st.sidebar.button("Reset Score/Logout"):
         update_high_score(st.session_state.username, st.session_state.count)
         st.session_state.logged_in = False
         st.session_state.count = 0
@@ -95,23 +94,25 @@ def game_screen():
 
     st.title(f"🕺 Scuba Dance: {st.session_state.username}")
     
-    # ใช้ st.metric เพื่อโชว์คะแนนแบบ Real-time แทนการวาดบนวิดีโอ
-    col1, col2 = st.columns(2)
-    col1.metric("🔥 Score", st.session_state.count)
-    
     # Spotify Integration
     try:
         sp_h = SpotifyHandler()
         track_id = sp_h.search_scuba_music()
-        st.components.v1.iframe(f"https://open.spotify.com/embed/track/{track_id}", height=80)
-    except: st.info("🎵 Spotify Player Ready")
+        st.components.v1.iframe(f"http://googleusercontent.com/spotify.com/5{track_id}", height=80)
+    except: st.write("🎵 Spotify Connected")
 
+    # กล้องแบบ WebRTC (สำหรับ Online Hosting)
     webrtc_streamer(
         key="scuba-dance",
         video_frame_callback=video_frame_callback,
         rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
         media_stream_constraints={"video": True, "audio": False},
     )
+    
+    st.write(f"### 🔥 คะแนนปัจจุบัน: {st.session_state.count}")
+    if st.button("บันทึกคะแนนสูงสุด"):
+        update_high_score(st.session_state.username, st.session_state.count)
+        st.balloons()
 
 if __name__ == "__main__":
     if st.session_state.logged_in: game_screen()

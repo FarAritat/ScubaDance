@@ -1,0 +1,22 @@
+# API Keys & Secrets (ห้ามเอาลง GitHub ตามเกณฑ์ข้อ 27)
+.env
+
+# Database (เพื่อไม่ให้ฐานข้อมูลส่วนตัวหลุดไป)
+*.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+lib/
+lib64/
+
+# Streamlit
+.streamlit/
+
+# OS
+.DS_Store
+Thumbs.db
